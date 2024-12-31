@@ -9,6 +9,8 @@ async def send_command(ws, command_data):
         print(f"Sending command: {command_data_str}")
         await ws.send_str(command_data_str)
         response = await ws.receive_str()
+        response_data = json.loads(response)
+        print(f"Response received: {json.dumps(response_data, indent=4)}")
         return json.loads(response)
     except Exception as e:
         print(f"Error sending command: {e}")
