@@ -33,8 +33,6 @@ from api_functions import (
     update_node
 )
 
-running = True
-
 async def menu(ws):
     global running
     while running:
@@ -79,6 +77,38 @@ async def menu(ws):
             response = await open_commissioning_window(ws, node_id)
         elif choice == '6':
             response = await get_nodes(ws)
+            result = response.get('result', [])
+            if not result:
+                print("No result data available.")
+                return
+            print(f"Number of nodes in result: {len(result)}")
+
+            # Process each node in the result
+            for node_idx, response in enumerate(result, start=1):
+                print(f"\nProcessing Node {node_idx}:")
+                node_id = response.get('node_id', 'Unknown')
+                date_commissioned = response.get('date_commissioned', 'Unknown')
+                last_interview = response.get('last_interview', 'Unknown')
+                interview_version = response.get('interview_version', 'Unknown')
+                available = response.get('available', 'Unknown')
+                is_bridge = response.get('is_bridge', 'Unknown')
+
+                print(f"  Node ID: {node_id}")
+                print(f"  Date Commissioned: {date_commissioned}")
+                print(f"  Last Interview: {last_interview}")
+                print(f"  Interview Version: {interview_version}")
+                print(f"  Available: {available}")
+                print(f"  Is Bridge: {is_bridge}")
+
+
+                attributes = response.get('attributes', {})
+                if not attributes:
+                    print("  No attributes available.")
+                    continue
+
+                print(f"  Number of attribute clusters: {len(attributes)}")
+
+
         elif choice == '7':
             node_id = int(input("Enter Node ID: "))
             response = await get_node(ws, node_id)
@@ -123,43 +153,35 @@ async def menu(ws):
             print("Invalid choice. Please try again.")
             continue
 
-        if response:
-            print(f"Response received: {json.dumps(response, indent=4)}")
+#        if response:
+#            print(f"Response received: {json.dumps(response, indent=4)}")
 
-async def main():
-    global running
+async def run_matter():
     # WebSocket URL of the Matter server 
     matter_server_url = "ws://192.168.1.102:5580/ws" 
 
     async with aiohttp.ClientSession() as session:
-        while running:
-            try:
-                async with session.ws_connect(matter_server_url) as ws:
-                    # Check server state before starting the menu
-                    state_response = await get_nodes(ws)
-                    if state_response:
-                        print("Server State:")
-                        print(json.dumps(state_response, indent=4))
-
-                    await menu(ws)
-            except aiohttp.ClientConnectionError: 
-                if not running:
-                    break
-                print("Connection lost, attempting to reconnect...") 
-                await asyncio.sleep(5) # Wait for 5 seconds before reconnecting 
-            except Exception as e: 
-                if not running:
-                    break
-                print(f"An error occurred: {e}") 
-                await asyncio.sleep(5) # Wait for 5 seconds before reconnecting
+        async with MatterClient(matter_server_url, session) as client:
+            # start listening
+            asyncio.create_task(client.start_listening())
+            # allow the client to initialize
+            await asyncio.sleep(10)
+            # dump full node info on random (available) node
+            for node in client.get_nodes():
+                if not node.available:
+                    continue
+                print()
+                print(node)
+                res = await client.node_diagnostics(node.node_id)
+                print(res)
+                print()
+                break
 
 # Run the main function 
 def run_main(): 
-    global running 
     try: 
-        asyncio.run(main()) 
+        asyncio.run(run_matter()) 
     except KeyboardInterrupt: 
-        running = False 
         print("\nProgram terminated by user.") 
 
 if __name__ == '__main__': 
