@@ -46,12 +46,22 @@ async def get_nodes(client):
 async def get_node_clusters(client):
     node_id = int(input("Enter the node ID to view its endpoints and clusters: "))
     node = client.get_node(node_id)
+    print(f"node retrieved: {node}")
+     # Print the attributes of the node object 
+     # print(f"Node attributes: {dir(node)}")
+    
     if node:
-        print(f"Node ID: {node_id}:")
-        for endpoint, entpoint_id in node.endpoints.items():
-            print(f"Endpoint: {endpoint.id}")
-            for cluster_id, cluster in endpoint.clusters.items():
-                print(f" - Cluster: {cluster.name} (ID: {cluster_id})")
+        print(f"Node ID: {node_id} Endpoints:")
+         # Print the endpoints attribute 
+        print(f"Endpoints: {node.endpoints}")
+
+        if node.endpoints:
+            for endpoint_id, endpoint in node.endpoints.items():
+                print(f"Endpoint ID: {endpoint_id}")
+                print(f"Clusters: {endpoint.clusters}")
+                for cluster_id, cluster in endpoint.clusters.items():
+                    # Print the attributes of the cluster object 
+                    print(f"Cluster attributes: {dir(cluster)}")
     else: 
         print(f"Node with ID {node_id} not found.")
 
