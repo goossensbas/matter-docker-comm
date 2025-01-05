@@ -58,10 +58,8 @@ async def get_node_clusters(client):
         if node.endpoints:
             for endpoint_id, endpoint in node.endpoints.items():
                 print(f"Endpoint ID: {endpoint_id}")
+                print(f"Cluster keys: {endpoint.clusters.keys()}")
                 print(f"Clusters: {endpoint.clusters}")
-                for cluster_id, cluster in endpoint.clusters.items():
-                    # Print the attributes of the cluster object 
-                    print(f"Cluster attributes: {dir(cluster)}")
     else: 
         print(f"Node with ID {node_id} not found.")
 
