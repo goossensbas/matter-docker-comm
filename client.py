@@ -73,6 +73,19 @@ def decode_cluster(cluster):
     formatted_attributes = [f"{key}: {value}" for key, value in attributes.items()]
     return ", ".join(formatted_attributes)
 
+async def send_command_to_node(client, node_id, endpoint_id, command): 
+    node = client.get_node(node_id) 
+    if node: 
+        endpoint = node.endpoints.get(endpoint_id) 
+        if endpoint: 
+            cluster = endpoint.clusters.get(command.cluster_id) 
+            if cluster:
+                await client.send_device_command(node_id, endpoint_id, command) 
+                print(f"Command {command} sent to node {node_id}, endpoint {endpoint_id}, cluster {command.cluster_id}") 
+            else: 
+                print(f"Cluster {command.cluster_id} not found in endpoint {endpoint_id}") 
+        else: print(f"Endpoint {endpoint_id} not found in node {node_id}") 
+    else: print(f"Node {node_id} not found")
 
 async def commission_new_node(client):
     print("Commission a device using a QR Code or Manual Pairing Code.")
@@ -91,7 +104,9 @@ async def menu(client):
         print("4. Get nodes")
         print("5. Commission new node")
         print("6. Get node clusters") 
-        print("7. Exit")
+        print("7. Send command")
+        print("8. Exit")
+
 
         choice = input("Choose an option: ")
 
@@ -108,6 +123,12 @@ async def menu(client):
         elif choice == '6':
             await get_node_clusters(client)
         elif choice == '7':
+            node_id = int(input("Enter the node ID to send the command to: ")) 
+            endpoint_id = int(input("Enter the endpoint ID to send the command to: "))
+            command = clusters.OnOff.Commands.Toggle()
+            print(command)
+            await send_command_to_node(client, node_id, endpoint_id, command)
+        elif choice == '8':
             break
         else:
             print("Invalid choice. Please try again.")
