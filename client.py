@@ -60,8 +60,18 @@ async def get_node_clusters(client):
                 print(f"Endpoint ID: {endpoint_id}")
                 print(f"Cluster keys: {endpoint.clusters.keys()}")
                 print(f"Clusters: {endpoint.clusters}")
+                for cluster_id, cluster in endpoint.clusters.items(): 
+                    cluster_info = decode_cluster(cluster) 
+                    print(f" Cluster ID: {cluster_id} - {cluster_info}")
     else: 
         print(f"Node with ID {node_id} not found.")
+
+
+def decode_cluster(cluster):
+    # Extract and format cluster attributes into a readable string
+    attributes = vars(cluster)
+    formatted_attributes = [f"{key}: {value}" for key, value in attributes.items()]
+    return ", ".join(formatted_attributes)
 
 
 async def commission_new_node(client):
