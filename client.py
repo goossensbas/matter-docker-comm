@@ -40,10 +40,11 @@ async def get_nodes(client):
         print(f"Node found: {node}")
         res = await client.node_diagnostics(node.node_id)
         print(f"Node diagnostics: {res}")
+        
         break
 
 
-async def get_node_clusters(client):
+async def get_node_clusters_detailed(client):
     node_id = int(input("Enter the node ID to view its endpoints and clusters: "))
     node = client.get_node(node_id)
     print(f"node retrieved: {node}")
@@ -66,6 +67,23 @@ async def get_node_clusters(client):
     else: 
         print(f"Node with ID {node_id} not found.")
 
+async def get_node_clusters(client):
+    node_id = int(input("Enter the node ID to view its endpoints and clusters: "))
+    node = client.get_node(node_id)
+    print(f"node retrieved: {node}")
+     # Print the attributes of the node object 
+     # print(f"Node attributes: {dir(node)}")
+    
+    if node:
+        for endpoint_id, endpoint in node.endpoints.items():
+            print(f"Endpoint ID: {endpoint_id}") 
+            print(f"Endpoint Object: {endpoint}") 
+            # Access attributes of MatterEndpoint object 
+            for cluster_id in endpoint.clusters: 
+                print(f" Cluster ID: {cluster_id}")
+            print("=" * 40)
+    else: 
+        print(f"Node with ID {node_id} not found.")
 
 def decode_cluster(cluster):
     # Extract and format cluster attributes into a readable string
@@ -104,8 +122,9 @@ async def menu(client):
         print("4. Get nodes")
         print("5. Commission new node")
         print("6. Get node clusters") 
-        print("7. Send command")
-        print("8. Exit")
+        print("7. Toggle light")
+        print("8. Bind light and switch")
+        print("9. Exit")
 
 
         choice = input("Choose an option: ")
@@ -124,14 +143,71 @@ async def menu(client):
             await get_node_clusters(client)
         elif choice == '7':
             node_id = int(input("Enter the node ID to send the command to: ")) 
-            endpoint_id = int(input("Enter the endpoint ID to send the command to: "))
+            endpoint_id = int(input("Enter the endpoint ID of the light: "))
             command = clusters.OnOff.Commands.Toggle()
             print(command)
             await send_command_to_node(client, node_id, endpoint_id, command)
-        elif choice == '8':
+        elif choice == '8': 
+            await bind_light_switch(client)
+        elif choice == '9':
             break
         else:
             print("Invalid choice. Please try again.")
+
+async def bind_light_switch(client): 
+    light_node_id = int(input("Enter the light node ID: "))
+    light_endpoint_id = int(input("Enter the light endpoint ID: ")) 
+    switch_node_id = int(input("Enter the switch node ID: "))
+    switch_endpoint_id = int(input("Enter the switch endpoint ID: ")) 
+
+    # Create an ACL for the switch on the light device 
+    acl_entry = [{ 
+        'fabricIndex': 1, # Assuming fabric index 1
+        'privilege': 5,
+        'authMode': 2,
+        'subjects': [112233],
+        'targets': None},
+        {
+        'fabricIndex': 1, # Assuming fabric index 1
+        'privilege': 5,
+        'authMode': 2,
+        'subjects': [switch_node_id, 112233],
+        'targets': [
+            {"cluster": 6, "endpoint": light_endpoint_id, "deviceType": None},
+            {"cluster": 8, "endpoint": light_endpoint_id, "deviceType": None}
+        ]}   
+    ] 
+
+    # read the AccessControlList on endpoint 0, cluster 31
+    res = await client.read_attribute(light_node_id, "0/31/0")
+    print(f"{res}")
+    # write the AccessControlList on endpoint 0, cluster 31
+    res = await client.write_attribute(light_node_id, "0/31/0", acl_entry)
+    print(f"{res}")
+    # read the updated AccessControlList on endpoint 0, cluster 31
+    res = await client.read_attribute(light_node_id, "0/31/0")
+    print(f"{res}")
+
+    # write Unicast binding to light switch 
+    binding_entry = [
+        {
+        'fabricIndex': 1, # Assuming fabric index 1
+        'node': light_node_id,
+        'endpoint': light_endpoint_id,
+        'cluster': 6,
+        },
+        {
+        'fabricIndex': 1, # Assuming fabric index 1
+        'node': light_node_id,
+        'endpoint': light_endpoint_id,
+        'cluster': 8,
+        }
+    ]
+    # res = await client.read_attribute(switch_node_id, f"{switch_endpoint_id}/30/0")
+    # print(f"{res}")
+    res = await client.write_attribute(switch_node_id,f"{switch_endpoint_id}/30/0", binding_entry)
+    print(f"{res}")
+
 
 
 async def run_matter():
