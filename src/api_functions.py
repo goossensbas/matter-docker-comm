@@ -337,7 +337,20 @@ async def write_acl(ws, acl_value):
     }
    return await send_command(ws, command_data) 
 
-async def write_unicast_binding:
+async def write_unicast_binding(ws, FabricID, LightNo deID, SwitchNodeID):
     """
     write an unicast binding in cluster 30
-    """   
+    """
+    command_data = {
+        "message_id": "26",
+        "command":"write_attribute",
+        "args":{
+            "node_id": SwitchNodeID,
+            "attribute_path":"1/30/0",
+            "value": [
+          {"fabricIndex": FabricID, "node": LightNodeID, "endpoint": 1, "cluster": 6},
+          {"fabricIndex": FabricID, "node": LightNodeID, "endpoint": 1, "cluster": 8}
+        ]
+       }
+    }
+   return await send_command(ws, command_data)   
