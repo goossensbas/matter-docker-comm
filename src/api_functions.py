@@ -3,6 +3,7 @@
 import json
 import asyncio
 
+
 async def send_command(ws, command_data):
     try:
         command_data_str = json.dumps(command_data)
@@ -16,11 +17,13 @@ async def send_command(ws, command_data):
         print(f"Error sending command: {e}")
         return None
     
+
 async def get_server_state(ws):
     command_data = {
         "message_id": "0"
     }
     return await send_command(ws, command_data)
+
 
 async def set_wifi_credentials(ws, ssid, credentials):
     command_data = {
@@ -33,6 +36,7 @@ async def set_wifi_credentials(ws, ssid, credentials):
     }
     return await send_command(ws, command_data)
 
+
 async def set_thread_dataset(ws, dataset):
     command_data = {
         "message_id": "2",
@@ -42,6 +46,7 @@ async def set_thread_dataset(ws, dataset):
         }
     }
     return await send_command(ws, command_data)
+
 
 async def commission_with_code(ws, code, network_only=False):
     command_data = {
@@ -54,6 +59,7 @@ async def commission_with_code(ws, code, network_only=False):
     }
     return await send_command(ws, command_data)
 
+
 async def open_commissioning_window(ws, node_id):
     command_data = {
         "message_id": "4",
@@ -64,6 +70,7 @@ async def open_commissioning_window(ws, node_id):
     }
     return await send_command(ws, command_data)
 
+
 async def get_nodes(ws):
     command_data = {
         "message_id": "5",
@@ -71,6 +78,7 @@ async def get_nodes(ws):
         "args": {}
     }
     return await send_command(ws, command_data)
+
 
 async def get_node(ws, node_id):
     command_data = {
@@ -82,6 +90,7 @@ async def get_node(ws, node_id):
     }
     return await send_command(ws, command_data)
 
+
 async def start_listening(ws):
     command_data = {
         "message_id": "7",
@@ -89,6 +98,7 @@ async def start_listening(ws):
         "args": {}
     }
     return await send_command(ws, command_data)
+
 
 async def read_attribute(ws, node_id, attribute_path):
     command_data = {
@@ -101,6 +111,7 @@ async def read_attribute(ws, node_id, attribute_path):
     }
     return await send_command(ws, command_data)
 
+
 async def write_attribute(ws, node_id, attribute_path, value):
     command_data = {
         "message_id": "9",
@@ -112,6 +123,7 @@ async def write_attribute(ws, node_id, attribute_path, value):
         }
     }
     return await send_command(ws, command_data)
+
 
 async def device_command(ws, endpoint_id, node_id, cluster_id, command_name, payload={}):
     command_data = {
@@ -127,6 +139,7 @@ async def device_command(ws, endpoint_id, node_id, cluster_id, command_name, pay
     }
     return await send_command(ws, command_data)
 
+
 async def add_node(ws, node_id):
     command_data = {
         "message_id": "11",
@@ -137,6 +150,7 @@ async def add_node(ws, node_id):
     }
     return await send_command(ws, command_data)
 
+
 async def remove_node(ws, node_id):
     command_data = {
         "message_id": "12",
@@ -146,6 +160,7 @@ async def remove_node(ws, node_id):
         }
     }
     return await send_command(ws, command_data)
+
 
 async def update_node(ws, node_id, new_info):
     command_data = {
@@ -158,6 +173,7 @@ async def update_node(ws, node_id, new_info):
     }
     return await send_command(ws, command_data)
 
+
 async def subscribe_to_events(ws, node_id):
     command_data = {
         "message_id": "14",
@@ -167,6 +183,7 @@ async def subscribe_to_events(ws, node_id):
         }
     }
     return await send_command(ws, command_data)
+
 
 async def unsubscribe_from_events(ws, node_id):
     command_data = {
@@ -178,6 +195,7 @@ async def unsubscribe_from_events(ws, node_id):
     }
     return await send_command(ws, command_data)
 
+
 async def set_default_fabric_label(ws, label):
     command_data = {
         "message_id": "16",
@@ -187,6 +205,7 @@ async def set_default_fabric_label(ws, label):
         }
     }
     return await send_command(ws, command_data)
+
 
 async def commission_on_network (ws, setup_pin_code):
     command_data = {
@@ -201,6 +220,7 @@ async def commission_on_network (ws, setup_pin_code):
     }
     return await send_command(ws, command_data)
 
+
 async def discover_commissionable_nodes(ws):
     command_data = {
         "message_id": "18",
@@ -208,6 +228,7 @@ async def discover_commissionable_nodes(ws):
         "args": {}
     }
     return await send_command(ws, command_data)
+
 
 async def interview_node(ws, node_id):
     command_data = {
@@ -219,6 +240,7 @@ async def interview_node(ws, node_id):
     }
     return await send_command(ws, command_data)
 
+
 async def ping_node(ws, node_id, attempts = 1):
     command_data = {
         "message_id": "20",
@@ -229,6 +251,7 @@ async def ping_node(ws, node_id, attempts = 1):
         }
     }
     return await send_command(ws, command_data)
+
 
 async def check_node_update(ws, node_id):
     """
@@ -247,6 +270,7 @@ async def check_node_update(ws, node_id):
     }
     return await send_command(ws, command_data)
 
+
 async def update_node(ws, node_id, software_version):
     """
     Update a node to a new software version.
@@ -264,4 +288,56 @@ async def update_node(ws, node_id, software_version):
             "software_version": software_version
         }
     }
-    return await send_command(ws, command_data)       
+    return await send_command(ws, command_data)  
+
+
+async def read_fabricindex(ws, node_id):
+    """
+    read the fabric index attribute from the OperationalCredentials cluster
+    """
+    command_data = {
+        "message_id": "23",
+        "command": "read_attrubute",
+        "args": {
+            "node_id": node_id,
+            "attribute_path":"0/62/5"
+           }
+    }
+    return await send_command(ws, command_data)
+
+
+async def read_acl(ws, node_id):
+    """
+    read the access control list(ACL) of a node
+    """ 
+    command_data = {
+        "message_id": "24",
+        "command":"read_attribute",
+        "args":{
+            "node_id":node_id,
+            "attribute_path":"0/31/0"
+       }
+    }
+   return await send_command(ws, command_data) 
+
+   
+async def write_acl(ws, acl_value):
+    """
+    write data to the ACL. Written value should be in this format:
+     [{"fabricIndex": [fabricID], "privilege": 5, "authMode": 2, "subjects": [112233], "targets": null}, {"fabricIndex": [fabricID],       "privilege": 3, "authMode": 2, "subjects": [[SwitchNodeID]], "targets": [{"cluster": 6, "endpoint": 1, "deviceType": null}, {          "cluster": 8, "endpoint": 1, "deviceType": null}]}]
+    """
+    command_data = {
+        "message_id": "25",
+        "command":"write_attribute",
+        "args":{
+            "node_id":node_id,
+            "attribute_path":"0/31/0",
+            "value": acl_value
+       }
+    }
+   return await send_command(ws, command_data) 
+
+async def write_unicast_binding:
+    """
+    write an unicast binding in cluster 30
+    """   
