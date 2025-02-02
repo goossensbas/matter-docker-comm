@@ -110,7 +110,7 @@ async def commission_new_node(client):
     setup_code = input("Enter the setup code for the new node: ")
     response = await client.commission_with_code(setup_code)
     print("Commissioning response:") 
-    print(json.dumps(response, indent=4))
+    print(response.__dict__)
 
 
 async def menu(client):
@@ -212,7 +212,7 @@ async def bind_light_switch(client):
 
 async def run_matter():
     # WebSocket URL of the Matter server 
-    matter_server_url = "ws://192.168.1.199:5580/ws" 
+    matter_server_url = "ws://192.168.1.153:5580/ws" 
 
     async with aiohttp.ClientSession() as session:
         try:
