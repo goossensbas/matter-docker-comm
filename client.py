@@ -113,6 +113,25 @@ async def commission_new_node(client):
     print(response.__dict__)
 
 
+async def add_node_to_group(client, node_id, group_id):
+    res = await client.read_attribute(node_id,f"1/4/0")
+    print(f"{res}")
+    current_membership = res.get("1/4/0", 0)  # Extracting the attribute value
+    print(f"Current Membership: {current_membership}")
+
+    # Define the AddGroup command
+    command = clusters.Groups.Commands.AddGroup(
+        groupID=int(group_id),  # Replace with your desired group ID
+        groupName=f"group{group_id}"  # Replace with your desired group name
+    )
+    
+    res = await send_command_to_node(client, node_id, 1, command)
+    print(f"Write Attribute Response: {res}")
+
+async def read_group(client, node_id):
+    return
+                  
+
 async def menu(client):
     while True:
         print("\nMenu:")
@@ -124,7 +143,9 @@ async def menu(client):
         print("6. Get node clusters") 
         print("7. Toggle light")
         print("8. Bind light and switch")
-        print("9. Exit")
+        print("9. read node groups")
+        print("10. Add node to group")
+        print("11. Exit")
 
 
         choice = input("Choose an option: ")
@@ -150,6 +171,13 @@ async def menu(client):
         elif choice == '8': 
             await bind_light_switch(client)
         elif choice == '9':
+            group_id = int(input("Enter the node ID: "))
+            await read_group(node_id)
+        elif choice == '10':
+            group_id = int(input("Enter the group ID: "))
+            node_id = int(input("Enter the node ID to add to the group: "))
+            await add_node_to_group(client, group_id, node_id)
+        elif choice == '11':
             break
         else:
             print("Invalid choice. Please try again.")
