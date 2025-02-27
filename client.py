@@ -2,6 +2,7 @@ import asyncio
 import aiohttp
 import json
 import signal
+import secrets
 from matter_server.client.client import MatterClient
 from chip.clusters import Objects as clusters
 
@@ -32,6 +33,7 @@ async def view_server_info(client):
 
 async def get_nodes(client):
     nodes = client.get_nodes()
+    print(nodes)
     print(f"Found {len(nodes)} nodes.")
     for node in nodes:
         print(f"Checking node: {node.node_id}, available: {node.available}")
@@ -40,8 +42,6 @@ async def get_nodes(client):
         print(f"Node found: {node}")
         res = await client.node_diagnostics(node.node_id)
         print(f"Node diagnostics: {res}")
-        
-        break
 
 
 async def get_node_clusters_detailed(client):
@@ -113,75 +113,6 @@ async def commission_new_node(client):
     print(response.__dict__)
 
 
-async def add_node_to_group(client, node_id, group_id):
-    res = await client.read_attribute(node_id,f"1/4/0")
-    print(f"{res}")
-    current_membership = res.get("1/4/0", 0)  # Extracting the attribute value
-    print(f"Current Membership: {current_membership}")
-
-    # Define the AddGroup command
-    command = clusters.Groups.Commands.AddGroup(
-        groupID=int(group_id),  # Replace with your desired group ID
-        groupName=f"group{group_id}"  # Replace with your desired group name
-    )
-    
-    res = await send_command_to_node(client, node_id, 1, command)
-    print(f"Write Attribute Response: {res}")
-
-async def read_group(client, node_id):
-    return
-                  
-
-async def menu(client):
-    while True:
-        print("\nMenu:")
-        print("1. Set Wi-Fi credentials")
-        print("2. Set Thread dataset")
-        print("3. View server info")
-        print("4. Get nodes")
-        print("5. Commission new node")
-        print("6. Get node clusters") 
-        print("7. Toggle light")
-        print("8. Bind light and switch")
-        print("9. read node groups")
-        print("10. Add node to group")
-        print("11. Exit")
-
-
-        choice = input("Choose an option: ")
-
-        if choice == '1':
-            await set_wifi_credentials(client)
-        elif choice == '2':
-            await set_thread_dataset(client)
-        elif choice == '3':
-            await view_server_info(client)
-        elif choice == '4':
-            await get_nodes(client)
-        elif choice == '5':
-            await commission_new_node(client)
-        elif choice == '6':
-            await get_node_clusters(client)
-        elif choice == '7':
-            node_id = int(input("Enter the node ID to send the command to: ")) 
-            endpoint_id = int(input("Enter the endpoint ID of the light: "))
-            command = clusters.OnOff.Commands.Toggle()
-            print(command)
-            await send_command_to_node(client, node_id, endpoint_id, command)
-        elif choice == '8': 
-            await bind_light_switch(client)
-        elif choice == '9':
-            group_id = int(input("Enter the node ID: "))
-            await read_group(node_id)
-        elif choice == '10':
-            group_id = int(input("Enter the group ID: "))
-            node_id = int(input("Enter the node ID to add to the group: "))
-            await add_node_to_group(client, group_id, node_id)
-        elif choice == '11':
-            break
-        else:
-            print("Invalid choice. Please try again.")
-
 async def bind_light_switch(client): 
     light_node_id = int(input("Enter the light node ID: "))
     light_endpoint_id = int(input("Enter the light endpoint ID: ")) 
@@ -236,7 +167,152 @@ async def bind_light_switch(client):
     res = await client.write_attribute(switch_node_id,f"{switch_endpoint_id}/30/0", binding_entry)
     print(f"{res}")
 
+async def add_node_to_group(client, node_id, group_id):    
+    # Define the AddGroup command
+    command = clusters.Groups.Commands.AddGroup(
+        groupID=int(group_id),  # Replace with your desired group ID
+        groupName=f"group{group_id}"  # Replace with your desired group name
+    )
+    try:
+        res = await send_command_to_node(client, node_id, 1, command)
+        print(f"Write Attribute Response: {res}")
+    except Exception as e:
+        print(f"Error during AddGroup command: {e}")
 
+async def read_group(client, node_id, group_id):
+    
+    try:
+        # Define the AddGroup command
+        command = clusters.Groups.Commands.GetGroupMembership()
+        res = await send_command_to_node(client, node_id, 1, command)
+        print(f"Write Attribute Response: {res}")
+    except Exception as e:
+        print(f"Error during GetGroupMembership command: {e}")
+
+    try:    
+        command = clusters.Groups.Commands.ViewGroup(groupID=group_id)
+        res = await send_command_to_node(client, node_id, 1, command)
+        print(f"Write Attribute Response: {res}")
+    except Exception as e:
+        print(f"Error during ViewGroup command: {e}")
+
+async def write_group_key(client, node_id, group_id):
+    group_key_set_id = group_id
+    group_key_security_policy = 0
+    # Randomly generate a 16-byte (128-bit) key
+    # group_key = secrets.token_bytes(16)
+    group_key=bytes.fromhex("d0d1d2d3d4d5d6d7d8d9dadbdcdddedf")
+    group_start_time = 2220000
+
+    group_key_set = clusters.GroupKeyManagement.Structs.GroupKeySetStruct(
+        groupKeySetID=group_key_set_id,
+        groupKeySecurityPolicy=group_key_security_policy,
+        epochKey0=group_key,
+        epochStartTime0=group_start_time
+    )
+
+
+
+    # Add key to device
+    command = clusters.GroupKeyManagement.Commands.KeySetWrite(group_key_set)
+    res = await send_command_to_node(client, node_id, 0, command)
+    print(f"Response: {res}")  
+
+    # bind key to group
+    binding_entry = [{"groupId": group_id, "groupKeySetID": group_key_set_id}]
+    res = await client.write_attribute(node_id,f"0/63/0", binding_entry)
+    print(f"Response: {res}")
+
+
+async def menu(client):
+    while True:
+        print("\nMenu:")
+        print("1. Set Wi-Fi credentials")
+        print("2. Set Thread dataset")
+        print("3. View server info")
+        print("4. Get nodes")
+        print("5. Commission new node")
+        print("6. Get node clusters") 
+        print("7. Toggle light")
+        print("8. Bind light and switch")
+        print("9. View nodes in group")
+        print("9. read node groups")
+        print("10. Add node to group")
+        print("11. toggle group")
+        print("12. Read attribute")
+        print("13. Send command to cluster")
+        print("14. Get node cluster info detailed")
+        print("15. write group keys")
+        print("16. Exit")
+
+
+        choice = input("Choose an option: ")
+
+        if choice == '1':
+            await set_wifi_credentials(client)
+        elif choice == '2':
+            await set_thread_dataset(client)
+        elif choice == '3':
+            await view_server_info(client)
+        elif choice == '4':
+            await get_nodes(client)
+        elif choice == '5':
+            await commission_new_node(client)
+        elif choice == '6':
+            await get_node_clusters(client)
+        elif choice == '7':
+            node_id = int(input("Enter the node ID to send the command to: ")) 
+            endpoint_id = int(input("Enter the endpoint ID of the light: "))
+            command = clusters.OnOff.Commands.Toggle()
+            print(command)
+            await send_command_to_node(client, node_id, endpoint_id, command)
+        elif choice == '8': 
+            await bind_light_switch(client)
+        elif choice == '9':
+            node_id = int(input("Enter the node ID: "))
+            group_id = int(input("Enter the group ID: "))
+            await read_group(client, node_id, group_id)
+        elif choice == '10':
+            group_id = int(input("Enter the group ID: "))
+            node_id = int(input("Enter the node ID to add to the group: "))
+            await add_node_to_group(client, node_id, group_id)
+        elif choice == '11':
+            pass
+        elif choice == '12':
+            node_id = int(input("Enter the node ID: "))
+            endpoint_id = int(input("Enter the endpoint ID: "))
+            cluster_id = int(input("Enter the cluster ID: "))
+            attribute_id = int(input("Enter the attribute ID: "))
+            res = await client.read_attribute(node_id, f"{endpoint_id}/{cluster_id}/{attribute_id}")
+            print(f"{res}")
+        elif choice == '13':
+            node_id = int(input("Enter the node ID: "))
+            cluster_id = int(input("Enter the cluster ID: "))
+            command_id = int(input("Enter the command ID: "))            
+        elif choice == '14':
+            await get_node_clusters_detailed(client)
+        elif choice == '15':
+            node_id = int(input("Enter the node ID: "))
+            group_id = int(input("Enter the group ID: "))
+            await write_group_key(client, node_id, group_id)
+        elif choice == '16':
+            break
+        else:
+            print("Invalid choice. Please try again.")
+
+
+
+async def connect_to_matter_server(matter_server_url):
+    async with aiohttp.ClientSession() as session:
+        while True:
+            try:
+                client = MatterClient(matter_server_url, session)
+                await client.connect()
+                print("Connected to Matter server.")
+                return client
+            except ConnectionFailed as e:
+                print(f"Connection failed: {e}. Retrying in 5 seconds...")
+                await asyncio.sleep(5)
 
 async def run_matter():
     # WebSocket URL of the Matter server 
