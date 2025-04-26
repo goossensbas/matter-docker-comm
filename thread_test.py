@@ -72,14 +72,35 @@ async def get_active_joiners():
         print("Request failed:", str(e))
         return None
 
-
+async def add_joiner(joiner_data):
+    try:
+        async with aiohttp.ClientSession() as thread_session:
+            async with thread_session.post(f"{BORDER_ROUTER_URL}/node/commissioner/joiner", headers=HEADERS, json=joiner_data) as response:
+                if response.status == 200:
+                    data = await response.json()
+                    print("Successfully added joiner:", json.dumps(data, indent=4))
+                    return data
+                elif response.status == 400:
+                    print("Invalid request body. Please verify the joiner data.")
+                elif response.status == 409:
+                    print("Adding joiner rejected: Commissioner is not active.")
+                elif response.status == 507:
+                    print("Failed to add joiner: Commissioner cannot support additional joiners.")
+                else:
+                    error = await response.text()
+                    print(f"Unexpected error. Status: {response.status}, Error: {error}")
+                    return None
+    except aiohttp.ClientError as e:
+        print("Request failed:", str(e))
+        return None
 async def thread_menu():
     while True:
         print("\nThread Menu:")
         print("1. Get Thread diagnostics")
         print("2. Enable Commissioner")
-        print("3. Get active joiners")
-        print("4. Back to Main Menu")
+        print("3. Add Joiner")
+        print("4. Get active joiners")
+        print("5. Back to Main Menu")
         
         choice = input("Enter your choice: ")
         
@@ -93,9 +114,22 @@ async def thread_menu():
             await enable_commissioner()
         elif choice == "3":
             # Example: Call a function to configure Thread settings
+            eui64 = input("Enter the EUI64: ").strip()
+            eui64= eui64.replace(":", "")
+            pskd = input("Enter the Pre-shared key (Pskd): ").strip()
+            # Form JOINER_DATA with timeout set to 5 minutes (300 seconds)
+            joiner_data = {
+                "Eui64": eui64,
+                "Pskd": pskd,
+                "Timeout": 300  # 5 minutes
+            }
+            print(f"Attempting to add joiner with data: {joiner_data}")
+            await add_joiner(joiner_data)
+        elif choice == "4":
+            # Example: Call a function to configure Thread settings
             print("Get active joiners...")
             await get_active_joiners()
-        elif choice == "4":
+        elif choice == "5":
             # Exit Thread menu to return to main menu
             break
         else:
