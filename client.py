@@ -3,6 +3,19 @@ import aiohttp
 import json
 import signal
 import secrets
+
+# WebSocket URL of the Matter server 
+matter_server_url = "ws://192.168.1.152:5580/ws" 
+
+BORDER_ROUTER_URL = 'http://192.168.1.152:8081'  # Replace with your actual endpoint
+HEADERS = {
+    "Accept": "application/json"
+}
+
+"""
+Functions for Matter
+"""
+
 from matter_server.client.client import MatterClient
 from chip.clusters import Objects as clusters
 
@@ -247,9 +260,69 @@ async def open_commissioner_window(client, node_id, timeout_seconds):
         print(f"Failed to open commissioner window: {e}")
 
 
+"""
+Functions to commission over Thread
+"""
+
+async def get_diagnostics():
+    try:
+        async with aiohttp.ClientSession() as thread_session:
+            async with thread_session.get(f"{BORDER_ROUTER_URL}/diagnostics", headers=HEADERS) as response:
+                # Check if the response status code is 200 (Successful operation)
+                if response.status == 200:
+                    data = await response.json()  # Assuming the content is JSON as per schema
+                    print ("response:", json.dumps(data, indent=4))
+                    return
+                else:
+                    print(f"Failed to retrieve diagnostics: {response.status}")
+                    return None
+    except aiohttp.ClientError as e:
+        print(f"An error occurred: {e}")
+        return None
+
+async def enable_commissioner():
+    async with aiohttp.ClientSession() as session:
+        try:
+            async with session.post(BORDER_ROUTER_URL, headers=HEADERS) as resp:
+                if resp.status == 200:
+                    data = await resp.json()
+                    print("Commissioner enabled:", data)
+                else:
+                    error = await resp.text()
+                    print(f"Failed to enable commissioner. Status: {resp.status}, Error: {error}")
+        except aiohttp.ClientError as e:
+            print("Request failed:", str(e))
+
+
+"""
+Menu
+"""
+async def thread_menu(client):
+    while True:
+        print("\nThread Menu:")
+        print("1. Get Thread diagnostics")
+        print("2. Configure Thread settings")
+        print("3. Back to Main Menu")
+        
+        choice = input("Enter your choice: ")
+        
+        if choice == "1":
+            # Example: Call a function to get Thread diagnostics
+            print("Fetching Thread diagnostics...")
+            await get_diagnostics()
+        elif choice == "2":
+            # Example: Call a function to configure Thread settings
+            print("Configuring Thread settings...")
+        elif choice == "3":
+            # Exit Thread menu to return to main menu
+            break
+        else:
+            print("Invalid choice, please try again.")
+
 async def menu(client):
     while True:
         print("\nMenu:")
+        print("0. Thread menu")
         print("1. Set Wi-Fi credentials")
         print("2. Set Thread dataset")
         print("3. View server info")
@@ -267,12 +340,13 @@ async def menu(client):
         print("14. Get node cluster info detailed")
         print("15. write group keys")
         print("16. open commissioning window on node")
-        print("16. Exit")
+        print("17. Exit")
 
 
         choice = input("Choose an option: ")
-
-        if choice == '1':
+        if choice == "0":
+            await thread_menu(client)  # Call the Thread menu
+        elif choice == '1':
             await set_wifi_credentials(client)
         elif choice == '2':
             await set_thread_dataset(client)
@@ -343,8 +417,6 @@ async def connect_to_matter_server(matter_server_url):
                 await asyncio.sleep(5)
 
 async def run_matter():
-    # WebSocket URL of the Matter server 
-    matter_server_url = "ws://192.168.1.152:5580/ws" 
 
     async with aiohttp.ClientSession() as session:
         try:
