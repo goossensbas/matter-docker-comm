@@ -281,17 +281,17 @@ async def get_diagnostics():
         return None
 
 async def enable_commissioner():
-    async with aiohttp.ClientSession() as session:
-        try:
-            async with session.post(BORDER_ROUTER_URL, headers=HEADERS) as resp:
-                if resp.status == 200:
-                    data = await resp.json()
-                    print("Commissioner enabled:", data)
+    try:
+        async with aiohttp.ClientSession() as thread_session:
+            async with thread_session.get(f"{BORDER_ROUTER_URL}/node/commissioner/state", headers=HEADERS) as response:
+                if response.status == 200:
+                    data = await response.json()
+                    print("Commissioner state:", data)
                 else:
-                    error = await resp.text()
-                    print(f"Failed to enable commissioner. Status: {resp.status}, Error: {error}")
-        except aiohttp.ClientError as e:
-            print("Request failed:", str(e))
+                    error = await response.text()
+                    print(f"Failed to enable commissioner. Status: {response.status}, Error: {error}")
+    except aiohttp.ClientError as e:
+        print("Request failed:", str(e))
 
 
 """
@@ -312,7 +312,8 @@ async def thread_menu(client):
             await get_diagnostics()
         elif choice == "2":
             # Example: Call a function to configure Thread settings
-            print("Configuring Thread settings...")
+            print("Configuring Commissioner...")
+            await enable_commissioner()
         elif choice == "3":
             # Exit Thread menu to return to main menu
             break
@@ -426,7 +427,7 @@ async def run_matter():
                     print("starting to listen")
                     asyncio.create_task(client.start_listening())
                     # allow the client to initialize
-                    await asyncio.sleep(10)
+                    await asyncio.sleep(1)
                     print("Matter client initialised.")
 
                     # Retrieve server status 
