@@ -223,6 +223,29 @@ async def write_group_key(client, node_id, group_id):
     res = await client.write_attribute(node_id,f"0/63/0", binding_entry)
     print(f"Response: {res}")
 
+async def open_commissioner_window(client, node_id, timeout_seconds):
+    """
+    Open a commissioner window on a specified node.
+
+    :param client: The MatterClient instance.
+    :param node_id: The ID of the target node.
+    :param timeout_seconds: Duration (in seconds) for the commissioner window to remain open.
+    """
+
+    try:
+        # Get the node by ID
+        node = client.get_node(node_id)
+        if not node:
+            print(f"Node with ID {node_id} not found.")
+            return
+
+        # Open the commissioning window
+        print(f"Opening commissioner window on node {node_id} for {timeout_seconds} seconds...")
+        await client.open_commissioning_window(node_id, timeout_seconds)
+        print(f"Commissioner window opened successfully on node {node_id} for {timeout_seconds} seconds.")
+    except Exception as e:
+        print(f"Failed to open commissioner window: {e}")
+
 
 async def menu(client):
     while True:
@@ -243,6 +266,7 @@ async def menu(client):
         print("13. Send command to cluster")
         print("14. Get node cluster info detailed")
         print("15. write group keys")
+        print("16. open commissioning window on node")
         print("16. Exit")
 
 
@@ -296,6 +320,10 @@ async def menu(client):
             group_id = int(input("Enter the group ID: "))
             await write_group_key(client, node_id, group_id)
         elif choice == '16':
+            node_id = int(input("Enter the node ID: "))
+            timeout_seconds = int(input("Enter timeout in seconds: "))
+            await open_commissioner_window(client, node_id, timeout_seconds)
+        elif choice == '17':
             break
         else:
             print("Invalid choice. Please try again.")
@@ -316,7 +344,7 @@ async def connect_to_matter_server(matter_server_url):
 
 async def run_matter():
     # WebSocket URL of the Matter server 
-    matter_server_url = "ws://192.168.1.153:5580/ws" 
+    matter_server_url = "ws://192.168.1.152:5580/ws" 
 
     async with aiohttp.ClientSession() as session:
         try:
